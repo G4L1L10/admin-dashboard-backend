@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"slices"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
 )
@@ -93,31 +94,13 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 		}
 
 		// Collect Options
-		if optionText != nil {
-			alreadyExists := false
-			for _, existing := range q.Options {
-				if existing == *optionText {
-					alreadyExists = true
-					break
-				}
-			}
-			if !alreadyExists {
-				q.Options = append(q.Options, *optionText)
-			}
+		if optionText != nil && !slices.Contains(q.Options, *optionText) {
+			q.Options = append(q.Options, *optionText)
 		}
 
 		// Collect Tags
-		if tagName != nil {
-			alreadyExists := false
-			for _, existing := range q.Tags {
-				if existing == *tagName {
-					alreadyExists = true
-					break
-				}
-			}
-			if !alreadyExists {
-				q.Tags = append(q.Tags, *tagName)
-			}
+		if tagName != nil && !slices.Contains(q.Tags, *tagName) {
+			q.Tags = append(q.Tags, *tagName)
 		}
 	}
 
