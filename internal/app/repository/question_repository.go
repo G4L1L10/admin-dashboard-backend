@@ -35,24 +35,67 @@ func (r *QuestionRepository) GetByID(id string) (*model.Question, error) {
 	return &question, nil
 }
 
-func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.Question, error) {
-	query := `SELECT id, lesson_id, question_text, question_type, image_url, audio_url, answer, explanation, created_at, updated_at 
-	          FROM questions WHERE lesson_id = $1 ORDER BY created_at ASC`
+func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWithOptions, error) {
+	query := `
+	SELECT 
+		q.id, q.lesson_id, q.question_text, q.question_type, q.image_url, q.audio_url, q.answer, q.explanation,
+		o.option_text
+	FROM 
+		questions q
+	LEFT JOIN 
+		options o ON q.id = o.question_id
+	WHERE 
+		q.lesson_id = $1
+	ORDER BY 
+		q.created_at ASC, o.created_at ASC
+	`
+
 	rows, err := r.db.Query(query, lessonID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var questions []*model.Question
+	questionMap := make(map[string]*model.QuestionWithOptions)
+
 	for rows.Next() {
-		var q model.Question
-		err := rows.Scan(&q.ID, &q.LessonID, &q.QuestionText, &q.QuestionType, &q.ImageURL, &q.AudioURL, &q.Answer, &q.Explanation, &q.CreatedAt, &q.UpdatedAt)
+		var (
+			qID, lessonID, questionText, questionType string
+			imageURL, audioURL, answer, explanation   *string
+			optionText                                *string
+		)
+
+		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText)
 		if err != nil {
 			return nil, err
 		}
-		questions = append(questions, &q)
+
+		q, exists := questionMap[qID]
+		if !exists {
+			q = &model.QuestionWithOptions{
+				ID:           qID,
+				LessonID:     lessonID,
+				QuestionText: questionText,
+				QuestionType: questionType,
+				ImageURL:     imageURL,
+				AudioURL:     audioURL,
+				Answer:       answer,
+				Explanation:  explanation,
+				Options:      []string{},
+			}
+			questionMap[qID] = q
+		}
+
+		if optionText != nil {
+			q.Options = append(q.Options, *optionText)
+		}
 	}
+
+	var questions []*model.QuestionWithOptions
+	for _, q := range questionMap {
+		questions = append(questions, q)
+	}
+
 	return questions, nil
 }
 

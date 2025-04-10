@@ -73,7 +73,7 @@ func (s *QuestionService) GetQuestionByID(id string) (*model.Question, error) {
 	return s.questionRepo.GetByID(id)
 }
 
-func (s *QuestionService) GetQuestionsByLessonID(lessonID string) ([]*model.Question, error) {
+func (s *QuestionService) GetQuestionsByLessonID(lessonID string) ([]*model.QuestionWithOptions, error) {
 	return s.questionRepo.GetByLessonID(lessonID)
 }
 

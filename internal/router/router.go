@@ -55,7 +55,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 		lesson := api.Group("/lessons")
 		{
 			lesson.POST("", r.LessonHandler.CreateLesson)
-			lesson.GET("/detail/:id", r.LessonHandler.GetLesson) // 🔥 Detail
+			lesson.GET("/detail/:id", r.LessonHandler.GetLesson)
 			lesson.PUT("/:id", r.LessonHandler.UpdateLesson)
 			lesson.DELETE("/:id", r.LessonHandler.DeleteLesson)
 
