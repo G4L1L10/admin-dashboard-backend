@@ -39,15 +39,20 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 	query := `
 	SELECT 
 		q.id, q.lesson_id, q.question_text, q.question_type, q.image_url, q.audio_url, q.answer, q.explanation,
-		o.option_text
+		o.option_text,
+		t.name
 	FROM 
 		questions q
 	LEFT JOIN 
 		options o ON q.id = o.question_id
+	LEFT JOIN 
+		question_tags qt ON q.id = qt.question_id
+	LEFT JOIN 
+		tags t ON qt.tag_id = t.id
 	WHERE 
 		q.lesson_id = $1
 	ORDER BY 
-		q.created_at ASC, o.created_at ASC
+		q.created_at ASC, o.created_at ASC, t.name ASC
 	`
 
 	rows, err := r.db.Query(query, lessonID)
@@ -62,10 +67,10 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 		var (
 			qID, lessonID, questionText, questionType string
 			imageURL, audioURL, answer, explanation   *string
-			optionText                                *string
+			optionText, tagName                       *string
 		)
 
-		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText)
+		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText, &tagName)
 		if err != nil {
 			return nil, err
 		}
@@ -82,12 +87,37 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 				Answer:       answer,
 				Explanation:  explanation,
 				Options:      []string{},
+				Tags:         []string{},
 			}
 			questionMap[qID] = q
 		}
 
+		// Collect Options
 		if optionText != nil {
-			q.Options = append(q.Options, *optionText)
+			alreadyExists := false
+			for _, existing := range q.Options {
+				if existing == *optionText {
+					alreadyExists = true
+					break
+				}
+			}
+			if !alreadyExists {
+				q.Options = append(q.Options, *optionText)
+			}
+		}
+
+		// Collect Tags
+		if tagName != nil {
+			alreadyExists := false
+			for _, existing := range q.Tags {
+				if existing == *tagName {
+					alreadyExists = true
+					break
+				}
+			}
+			if !alreadyExists {
+				q.Tags = append(q.Tags, *tagName)
+			}
 		}
 	}
 

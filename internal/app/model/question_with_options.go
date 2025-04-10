@@ -10,4 +10,5 @@ type QuestionWithOptions struct {
 	Answer       *string  `json:"answer"`
 	Explanation  *string  `json:"explanation"`
 	Options      []string `json:"options"`
+	Tags         []string `json:"tags"` // <-- ADD THIS
 }
