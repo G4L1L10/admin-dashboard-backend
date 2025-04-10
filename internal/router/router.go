@@ -51,15 +51,14 @@ func (r *Router) SetupRouter() *gin.Engine {
 		}
 
 		// ===== Lessons =====
-		// Lessons
 		lesson := api.Group("/lessons")
 		{
 			lesson.POST("", r.LessonHandler.CreateLesson)
 			lesson.GET("/detail/:id", r.LessonHandler.GetLesson)
+			lesson.GET("/full/:id", r.LessonHandler.GetFullLesson)
+			lesson.GET("/:lesson_id/questions", r.QuestionHandler.GetQuestionsByLesson)
 			lesson.PUT("/:id", r.LessonHandler.UpdateLesson)
 			lesson.DELETE("/:id", r.LessonHandler.DeleteLesson)
-
-			lesson.GET("/:lesson_id/questions", r.QuestionHandler.GetQuestionsByLesson)
 		}
 
 		// ===== Questions =====

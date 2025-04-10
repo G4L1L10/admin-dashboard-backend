@@ -6,11 +6,18 @@ import (
 )
 
 type LessonService struct {
-	lessonRepo *repository.LessonRepository
+	lessonRepo   *repository.LessonRepository
+	questionRepo *repository.QuestionRepository
 }
 
-func NewLessonService(lessonRepo *repository.LessonRepository) *LessonService {
-	return &LessonService{lessonRepo: lessonRepo}
+func NewLessonService(
+	lessonRepo *repository.LessonRepository,
+	questionRepo *repository.QuestionRepository,
+) *LessonService {
+	return &LessonService{
+		lessonRepo:   lessonRepo,
+		questionRepo: questionRepo,
+	}
 }
 
 // CREATE
@@ -21,6 +28,28 @@ func (s *LessonService) CreateLesson(lesson *model.Lesson) error {
 // READ
 func (s *LessonService) GetLessonByID(id string) (*model.Lesson, error) {
 	return s.lessonRepo.GetByID(id)
+}
+
+func (s *LessonService) GetFullLesson(lessonID string) (*model.FullLesson, error) {
+	// Get lesson metadata
+	lesson, err := s.lessonRepo.GetByID(lessonID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all questions (with options and tags)
+	questions, err := s.questionRepo.GetByLessonID(lessonID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Bundle it together
+	fullLesson := &model.FullLesson{
+		Lesson:    lesson,
+		Questions: questions,
+	}
+
+	return fullLesson, nil
 }
 
 // UPDATE

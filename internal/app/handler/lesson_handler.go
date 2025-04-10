@@ -46,6 +46,18 @@ func (h *LessonHandler) GetLesson(c *gin.Context) {
 	c.JSON(http.StatusOK, lesson)
 }
 
+func (h *LessonHandler) GetFullLesson(c *gin.Context) {
+	lessonID := c.Param("id")
+
+	fullLesson, err := h.lessonService.GetFullLesson(lessonID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch full lesson", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, fullLesson)
+}
+
 // PUT /api/lessons/:id
 func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 	id := c.Param("id")

@@ -26,7 +26,7 @@ func Start() error {
 
 	// 4. Initialize services
 	courseService := service.NewCourseService(courseRepo)
-	lessonService := service.NewLessonService(lessonRepo)
+	lessonService := service.NewLessonService(lessonRepo, questionRepo)
 	questionService := service.NewQuestionService(questionRepo, optionRepo, tagRepo, questionTagRepo)
 	optionService := service.NewOptionService(optionRepo)
 	tagService := service.NewTagService(tagRepo)
