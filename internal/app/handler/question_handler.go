@@ -87,6 +87,18 @@ func (h *QuestionHandler) GetQuestionsByLesson(c *gin.Context) {
 	c.JSON(http.StatusOK, questions)
 }
 
+func (h *QuestionHandler) GetQuestionsByTag(c *gin.Context) {
+	tag := c.Query("tag")
+
+	questions, err := h.questionService.GetQuestionsByTag(tag)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch questions by tag", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, questions)
+}
+
 // PUT /api/questions/:id
 func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 	id := c.Param("id")

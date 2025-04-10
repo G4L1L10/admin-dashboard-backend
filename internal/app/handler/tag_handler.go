@@ -46,6 +46,18 @@ func (h *TagHandler) GetTag(c *gin.Context) {
 	c.JSON(http.StatusOK, tag)
 }
 
+func (h *TagHandler) SearchTags(c *gin.Context) {
+	keyword := c.Query("search")
+
+	tags, err := h.tagService.SearchTags(keyword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to search tags", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, tags)
+}
+
 // PUT /api/tags/:id
 func (h *TagHandler) UpdateTag(c *gin.Context) {
 	id := c.Param("id")

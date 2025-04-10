@@ -46,6 +46,32 @@ func (r *TagRepository) FindByName(name string) (*model.Tag, error) {
 	return &tag, nil
 }
 
+func (r *TagRepository) SearchByName(keyword string) ([]*model.Tag, error) {
+	query := `
+	SELECT id, name, created_at, updated_at
+	FROM tags
+	WHERE name ILIKE '%' || $1 || '%'
+	ORDER BY name ASC
+	`
+	rows, err := r.db.Query(query, keyword)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []*model.Tag
+	for rows.Next() {
+		var tag model.Tag
+		err := rows.Scan(&tag.ID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		tags = append(tags, &tag)
+	}
+
+	return tags, nil
+}
+
 // UPDATE
 func (r *TagRepository) Update(tag *model.Tag) error {
 	query := `UPDATE tags SET name = $1, updated_at = NOW() WHERE id = $2`

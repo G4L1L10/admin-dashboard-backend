@@ -66,6 +66,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 		{
 			questions.POST("", r.QuestionHandler.CreateQuestion)
 			questions.GET("/:id", r.QuestionHandler.GetQuestion)
+			questions.GET("", r.QuestionHandler.GetQuestionsByTag)
 			questions.PUT("/:id", r.QuestionHandler.UpdateQuestion)
 			questions.DELETE("/:id", r.QuestionHandler.DeleteQuestion)
 		}
@@ -84,6 +85,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 		{
 			tags.POST("", r.TagHandler.CreateTag)
 			tags.GET("/:id", r.TagHandler.GetTag)
+			tags.GET("", r.TagHandler.SearchTags)
 			tags.PUT("/:id", r.TagHandler.UpdateTag)
 			tags.DELETE("/:id", r.TagHandler.DeleteTag)
 		}

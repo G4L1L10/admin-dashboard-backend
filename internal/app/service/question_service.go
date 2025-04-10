@@ -77,6 +77,10 @@ func (s *QuestionService) GetQuestionsByLessonID(lessonID string) ([]*model.Ques
 	return s.questionRepo.GetByLessonID(lessonID)
 }
 
+func (s *QuestionService) GetQuestionsByTag(tagName string) ([]*model.QuestionWithOptions, error) {
+	return s.questionRepo.GetQuestionsByTag(tagName)
+}
+
 // UPDATE
 func (s *QuestionService) UpdateQuestion(question *model.Question) error {
 	return s.questionRepo.Update(question)

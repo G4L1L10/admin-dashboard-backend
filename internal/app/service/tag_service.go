@@ -23,6 +23,11 @@ func (s *TagService) GetTagByID(id string) (*model.Tag, error) {
 	return s.tagRepo.GetByID(id)
 }
 
+// SEARCH FOR TAGS
+func (s *TagService) SearchTags(keyword string) ([]*model.Tag, error) {
+	return s.tagRepo.SearchByName(keyword)
+}
+
 // UPDATE
 func (s *TagService) UpdateTag(tag *model.Tag) error {
 	return s.tagRepo.Update(tag)
