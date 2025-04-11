@@ -18,6 +18,7 @@ func NewQuestionHandler(questionService *service.QuestionService) *QuestionHandl
 }
 
 // POST /api/questions
+// POST /api/questions
 func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 	var req struct {
 		LessonID     string     `json:"lesson_id" binding:"required"`
@@ -25,15 +26,36 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 		QuestionType string     `json:"question_type" binding:"required"`
 		ImageURL     *string    `json:"image_url"`
 		AudioURL     *string    `json:"audio_url"`
-		Answer       string     `json:"answer" binding:"required"`
+		Answer       string     `json:"answer"` // ✅ Remove `binding:"required"`
 		Explanation  string     `json:"explanation"`
-		Options      []string   `json:"options"` // ✅ now optional
-		Pairs        [][]string `json:"pairs"`   // ✅ added
+		Options      []string   `json:"options"`
+		Pairs        [][]string `json:"pairs"`
 		Tags         []string   `json:"tags"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid request", err.Error()))
 		return
+	}
+
+	// ✅ Validate matching_pairs
+	if req.QuestionType == "matching_pairs" {
+		if len(req.Pairs) > 8 {
+			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Too many matching pairs", "Maximum allowed is 8 pairs"))
+			return
+		}
+		for _, pair := range req.Pairs {
+			if len(pair) != 2 {
+				c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid matching pair format", "Each pair must have exactly two elements"))
+				return
+			}
+		}
+	} else {
+		// ✅ Validate answer required for non-matching_pairs
+		if req.Answer == "" {
+			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Answer required", "Answer is required for non-matching pairs questions"))
+			return
+		}
 	}
 
 	question := &model.Question{
@@ -49,21 +71,14 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 
 	var options []*model.Option
 
-	// ✨ Check which structure to use based on question type
 	if req.QuestionType == "matching_pairs" {
 		for _, pair := range req.Pairs {
-			if len(pair) != 2 {
-				c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid matching pair format", "Each pair must have exactly two elements"))
-				return
-			}
 			left := pair[0]
 			right := pair[1]
-
-			// Save left + right as a simple string now (later you could make a dedicated Pairs table)
 			options = append(options, &model.Option{
 				ID:         utils.GenerateUUID(),
 				QuestionID: question.ID,
-				OptionText: left + " :: " + right, // Save as "left :: right"
+				OptionText: left + " :: " + right,
 			})
 		}
 	} else {
