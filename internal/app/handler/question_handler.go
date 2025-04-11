@@ -20,15 +20,16 @@ func NewQuestionHandler(questionService *service.QuestionService) *QuestionHandl
 // POST /api/questions
 func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 	var req struct {
-		LessonID     string   `json:"lesson_id" binding:"required"`
-		QuestionText string   `json:"question_text" binding:"required"`
-		QuestionType string   `json:"question_type" binding:"required"`
-		ImageURL     *string  `json:"image_url"`
-		AudioURL     *string  `json:"audio_url"`
-		Answer       string   `json:"answer" binding:"required"`
-		Explanation  string   `json:"explanation"`
-		Options      []string `json:"options" binding:"required,dive,required"`
-		Tags         []string `json:"tags"`
+		LessonID     string     `json:"lesson_id" binding:"required"`
+		QuestionText string     `json:"question_text" binding:"required"`
+		QuestionType string     `json:"question_type" binding:"required"`
+		ImageURL     *string    `json:"image_url"`
+		AudioURL     *string    `json:"audio_url"`
+		Answer       string     `json:"answer" binding:"required"`
+		Explanation  string     `json:"explanation"`
+		Options      []string   `json:"options"` // ✅ now optional
+		Pairs        [][]string `json:"pairs"`   // ✅ added
+		Tags         []string   `json:"tags"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid request", err.Error()))
@@ -47,12 +48,32 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 	}
 
 	var options []*model.Option
-	for _, optText := range req.Options {
-		options = append(options, &model.Option{
-			ID:         utils.GenerateUUID(),
-			QuestionID: question.ID,
-			OptionText: optText,
-		})
+
+	// ✨ Check which structure to use based on question type
+	if req.QuestionType == "matching_pairs" {
+		for _, pair := range req.Pairs {
+			if len(pair) != 2 {
+				c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid matching pair format", "Each pair must have exactly two elements"))
+				return
+			}
+			left := pair[0]
+			right := pair[1]
+
+			// Save left + right as a simple string now (later you could make a dedicated Pairs table)
+			options = append(options, &model.Option{
+				ID:         utils.GenerateUUID(),
+				QuestionID: question.ID,
+				OptionText: left + " :: " + right, // Save as "left :: right"
+			})
+		}
+	} else {
+		for _, optText := range req.Options {
+			options = append(options, &model.Option{
+				ID:         utils.GenerateUUID(),
+				QuestionID: question.ID,
+				OptionText: optText,
+			})
+		}
 	}
 
 	if err := h.questionService.CreateQuestion(question, options, req.Tags); err != nil {
