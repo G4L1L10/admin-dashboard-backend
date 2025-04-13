@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
@@ -18,7 +19,6 @@ func NewQuestionHandler(questionService *service.QuestionService) *QuestionHandl
 }
 
 // POST /api/questions
-// POST /api/questions
 func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 	var req struct {
 		LessonID     string     `json:"lesson_id" binding:"required"`
@@ -26,7 +26,7 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 		QuestionType string     `json:"question_type" binding:"required"`
 		ImageURL     *string    `json:"image_url"`
 		AudioURL     *string    `json:"audio_url"`
-		Answer       string     `json:"answer"` // ✅ Remove `binding:"required"`
+		Answer       string     `json:"answer"` // ✅ No binding required
 		Explanation  string     `json:"explanation"`
 		Options      []string   `json:"options"`
 		Pairs        [][]string `json:"pairs"`
@@ -49,6 +49,13 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid matching pair format", "Each pair must have exactly two elements"))
 				return
 			}
+		}
+
+		// ✅ Validate that Answer is a valid JSON array for matching_pairs
+		var parsedAnswer [][]string
+		if err := json.Unmarshal([]byte(req.Answer), &parsedAnswer); err != nil {
+			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid matching pairs answer format", err.Error()))
+			return
 		}
 	} else {
 		// ✅ Validate answer required for non-matching_pairs
