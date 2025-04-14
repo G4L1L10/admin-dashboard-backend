@@ -23,6 +23,7 @@ func Start() error {
 	optionRepo := repository.NewOptionRepository(db.DB)
 	tagRepo := repository.NewTagRepository(db.DB)
 	questionTagRepo := repository.NewQuestionTagRepository(db.DB)
+	statsRepo := repository.NewStatsRepository(db.DB) // ✅ Add this
 
 	// 4. Initialize services
 	courseService := service.NewCourseService(courseRepo)
@@ -30,6 +31,7 @@ func Start() error {
 	questionService := service.NewQuestionService(questionRepo, optionRepo, tagRepo, questionTagRepo)
 	optionService := service.NewOptionService(optionRepo)
 	tagService := service.NewTagService(tagRepo)
+	statsService := service.NewStatsService(statsRepo) // ✅ Add this
 
 	// 5. Initialize handlers
 	courseHandler := handler.NewCourseHandler(courseService)
@@ -37,6 +39,7 @@ func Start() error {
 	questionHandler := handler.NewQuestionHandler(questionService)
 	optionHandler := handler.NewOptionHandler(optionService)
 	tagHandler := handler.NewTagHandler(tagService)
+	statsHandler := handler.NewStatsHandler(statsService) // ✅ Add this
 
 	// 6. Setup router
 	appRouter := router.NewRouter(
@@ -45,6 +48,7 @@ func Start() error {
 		questionHandler,
 		optionHandler,
 		tagHandler,
+		statsHandler, // ✅ Pass statsHandler here
 	)
 
 	server := appRouter.SetupRouter()
@@ -57,3 +61,4 @@ func Start() error {
 
 	return server.Run(":" + port)
 }
+

@@ -12,6 +12,7 @@ type Router struct {
 	QuestionHandler *handler.QuestionHandler
 	OptionHandler   *handler.OptionHandler
 	TagHandler      *handler.TagHandler
+	StatsHandler    *handler.StatsHandler
 }
 
 func NewRouter(
@@ -20,6 +21,7 @@ func NewRouter(
 	questionHandler *handler.QuestionHandler,
 	optionHandler *handler.OptionHandler,
 	tagHandler *handler.TagHandler,
+	statsHandler *handler.StatsHandler,
 ) *Router {
 	return &Router{
 		CourseHandler:   courseHandler,
@@ -27,6 +29,7 @@ func NewRouter(
 		QuestionHandler: questionHandler,
 		OptionHandler:   optionHandler,
 		TagHandler:      tagHandler,
+		StatsHandler:    statsHandler,
 	}
 }
 
@@ -89,6 +92,9 @@ func (r *Router) SetupRouter() *gin.Engine {
 			tags.PUT("/:id", r.TagHandler.UpdateTag)
 			tags.DELETE("/:id", r.TagHandler.DeleteTag)
 		}
+
+		// ===== Stats =====
+		api.GET("/stats", r.StatsHandler.GetStats)
 	}
 
 	return router
