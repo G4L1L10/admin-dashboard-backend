@@ -21,7 +21,7 @@ func (r *CourseRepository) Create(course *model.Course) error {
 	return err
 }
 
-// READ
+// READ - Single Course
 func (r *CourseRepository) GetByID(id string) (*model.Course, error) {
 	query := `SELECT id, title, description, created_at, updated_at FROM courses WHERE id = $1`
 	row := r.db.QueryRow(query, id)
@@ -32,6 +32,28 @@ func (r *CourseRepository) GetByID(id string) (*model.Course, error) {
 		return nil, err
 	}
 	return &course, nil
+}
+
+// READ - List All Courses ✅
+func (r *CourseRepository) ListCourses() ([]*model.Course, error) {
+	query := `SELECT id, title, description, created_at, updated_at FROM courses ORDER BY created_at DESC`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var courses []*model.Course
+	for rows.Next() {
+		var course model.Course
+		err := rows.Scan(&course.ID, &course.Title, &course.Description, &course.CreatedAt, &course.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		courses = append(courses, &course)
+	}
+
+	return courses, nil
 }
 
 // UPDATE
@@ -47,4 +69,3 @@ func (r *CourseRepository) Delete(id string) error {
 	_, err := r.db.Exec(query, id)
 	return err
 }
-

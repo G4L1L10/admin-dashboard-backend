@@ -18,9 +18,14 @@ func (s *CourseService) CreateCourse(course *model.Course) error {
 	return s.courseRepo.Create(course)
 }
 
-// READ
+// READ - Single Course
 func (s *CourseService) GetCourseByID(id string) (*model.Course, error) {
 	return s.courseRepo.GetByID(id)
+}
+
+// READ - List All Courses ✅
+func (s *CourseService) ListCourses() ([]*model.Course, error) {
+	return s.courseRepo.ListCourses()
 }
 
 // UPDATE

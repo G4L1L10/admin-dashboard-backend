@@ -46,6 +46,17 @@ func (h *CourseHandler) GetCourse(c *gin.Context) {
 	c.JSON(http.StatusOK, course)
 }
 
+// GET /api/courses  ✅ NEW
+func (h *CourseHandler) ListCourses(c *gin.Context) {
+	courses, err := h.courseService.ListCourses()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch courses", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, courses)
+}
+
 // PUT /api/courses/:id
 func (h *CourseHandler) UpdateCourse(c *gin.Context) {
 	id := c.Param("id")

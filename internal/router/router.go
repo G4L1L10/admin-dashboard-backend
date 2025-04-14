@@ -48,6 +48,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 		courses := api.Group("/courses")
 		{
 			courses.POST("", r.CourseHandler.CreateCourse)
+			courses.GET("", r.CourseHandler.ListCourses) // 🛠️ ADDED: List all courses
 			courses.GET("/:id", r.CourseHandler.GetCourse)
 			courses.PUT("/:id", r.CourseHandler.UpdateCourse)
 			courses.DELETE("/:id", r.CourseHandler.DeleteCourse)
