@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
@@ -99,6 +100,12 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 	}
 
 	if err := h.questionService.CreateQuestion(question, options, req.Tags); err != nil {
+		if err := h.questionService.CreateQuestion(question, options, req.Tags); err != nil {
+			log.Printf("Failed to create question: %+v\n", err) // 👈 ADD THIS
+			c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create question", err.Error()))
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create question", err.Error()))
 		return
 	}

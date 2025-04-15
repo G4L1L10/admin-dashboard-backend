@@ -58,6 +58,18 @@ func (h *LessonHandler) GetFullLesson(c *gin.Context) {
 	c.JSON(http.StatusOK, fullLesson)
 }
 
+func (h *LessonHandler) GetLessonsByCourseID(c *gin.Context) {
+	courseID := c.Param("course_id")
+
+	lessons, err := h.lessonService.GetLessonsByCourseID(courseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch lessons", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, lessons)
+}
+
 // PUT /api/lessons/:id
 func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 	id := c.Param("id")
@@ -88,4 +100,3 @@ func (h *LessonHandler) DeleteLesson(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Lesson deleted successfully"})
 }
-

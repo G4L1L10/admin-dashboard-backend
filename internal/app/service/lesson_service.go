@@ -30,6 +30,10 @@ func (s *LessonService) GetLessonByID(id string) (*model.Lesson, error) {
 	return s.lessonRepo.GetByID(id)
 }
 
+func (s *LessonService) GetLessonsByCourseID(courseID string) ([]*model.Lesson, error) {
+	return s.lessonRepo.GetByCourseID(courseID)
+}
+
 func (s *LessonService) GetFullLesson(lessonID string) (*model.FullLesson, error) {
 	// Get lesson metadata
 	lesson, err := s.lessonRepo.GetByID(lessonID)
@@ -61,4 +65,3 @@ func (s *LessonService) UpdateLesson(lesson *model.Lesson) error {
 func (s *LessonService) DeleteLesson(id string) error {
 	return s.lessonRepo.Delete(id)
 }
-
