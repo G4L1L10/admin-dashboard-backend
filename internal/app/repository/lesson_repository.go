@@ -81,7 +81,6 @@ func (r *LessonRepository) GetByCourseID(courseID string) ([]*model.Lesson, erro
 }
 
 // UPDATE
-// UPDATE
 func (r *LessonRepository) Update(lesson *model.Lesson) error {
 	query := `UPDATE lessons 
 	          SET title = $1, description = $2, unit = $3, difficulty = $4, xp_reward = $5, crowns_reward = $6, updated_at = NOW() 
