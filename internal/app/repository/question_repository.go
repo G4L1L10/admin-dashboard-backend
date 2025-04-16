@@ -23,17 +23,90 @@ func (r *QuestionRepository) Create(question *model.Question) error {
 	return err
 }
 
-// READ
+// READ - basic question only (no tags/options)
 func (r *QuestionRepository) GetByID(id string) (*model.Question, error) {
 	query := `SELECT id, lesson_id, question_text, question_type, image_url, audio_url, answer, explanation, created_at, updated_at FROM questions WHERE id = $1`
 	row := r.db.QueryRow(query, id)
 
-	var question model.Question
-	err := row.Scan(&question.ID, &question.LessonID, &question.QuestionText, &question.QuestionType, &question.ImageURL, &question.AudioURL, &question.Answer, &question.Explanation, &question.CreatedAt, &question.UpdatedAt)
+	var q model.Question
+	err := row.Scan(&q.ID, &q.LessonID, &q.QuestionText, &q.QuestionType, &q.ImageURL, &q.AudioURL, &q.Answer, &q.Explanation, &q.CreatedAt, &q.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
-	return &question, nil
+	return &q, nil
+}
+
+// READ - full question with tags and options
+func (r *QuestionRepository) GetByIDWithTags(id string) (*model.QuestionWithOptions, error) {
+	query := `
+	SELECT 
+		q.id, q.lesson_id, q.question_text, q.question_type, q.image_url, q.audio_url, q.answer, q.explanation,
+		o.option_text,
+		t.name
+	FROM 
+		questions q
+	LEFT JOIN 
+		options o ON q.id = o.question_id
+	LEFT JOIN 
+		question_tags qt ON q.id = qt.question_id
+	LEFT JOIN 
+		tags t ON qt.tag_id = t.id
+	WHERE 
+		q.id = $1
+	`
+
+	rows, err := r.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var question *model.QuestionWithOptions
+	optionSet := make(map[string]bool)
+	tagSet := make(map[string]bool)
+
+	for rows.Next() {
+		var (
+			qID, lessonID, questionText, questionType string
+			imageURL, audioURL, answer, explanation   *string
+			optionText, tagName                       *string
+		)
+
+		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText, &tagName)
+		if err != nil {
+			return nil, err
+		}
+
+		if question == nil {
+			question = &model.QuestionWithOptions{
+				ID:           qID,
+				LessonID:     lessonID,
+				QuestionText: questionText,
+				QuestionType: questionType,
+				ImageURL:     imageURL,
+				AudioURL:     audioURL,
+				Answer:       answer,
+				Explanation:  explanation,
+				Options:      []string{},
+				Tags:         []string{},
+			}
+		}
+
+		if optionText != nil && !optionSet[*optionText] {
+			question.Options = append(question.Options, *optionText)
+			optionSet[*optionText] = true
+		}
+		if tagName != nil && !tagSet[*tagName] {
+			question.Tags = append(question.Tags, *tagName)
+			tagSet[*tagName] = true
+		}
+	}
+
+	if question == nil {
+		return nil, sql.ErrNoRows
+	}
+
+	return question, nil
 }
 
 func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWithOptions, error) {
@@ -93,12 +166,9 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 			questionMap[qID] = q
 		}
 
-		// Collect Options
 		if optionText != nil && !slices.Contains(q.Options, *optionText) {
 			q.Options = append(q.Options, *optionText)
 		}
-
-		// Collect Tags
 		if tagName != nil && !slices.Contains(q.Tags, *tagName) {
 			q.Tags = append(q.Tags, *tagName)
 		}

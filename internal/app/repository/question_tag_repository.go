@@ -28,6 +28,12 @@ func (r *QuestionTagRepository) Delete(questionID, tagID string) error {
 	return err
 }
 
+func (r *QuestionTagRepository) DeleteByQuestionID(questionID string) error {
+	query := `DELETE FROM question_tags WHERE question_id = $1`
+	_, err := r.db.Exec(query, questionID)
+	return err
+}
+
 // READ
 func (r *QuestionTagRepository) GetTagsByQuestionID(questionID string) ([]string, error) {
 	query := `SELECT tag_id FROM question_tags WHERE question_id = $1`
@@ -47,4 +53,3 @@ func (r *QuestionTagRepository) GetTagsByQuestionID(questionID string) ([]string
 	}
 	return tags, nil
 }
-

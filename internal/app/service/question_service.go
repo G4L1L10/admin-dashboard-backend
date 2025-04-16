@@ -29,24 +29,80 @@ func NewQuestionService(
 
 // CREATE
 func (s *QuestionService) CreateQuestion(question *model.Question, options []*model.Option, tags []string) error {
-	// Insert Question
 	if err := s.questionRepo.Create(question); err != nil {
 		return err
 	}
 
-	// Insert Options
 	for _, option := range options {
 		if err := s.optionRepo.Create(option); err != nil {
 			return err
 		}
 	}
 
-	// Insert Tags + Link
 	for _, tagName := range tags {
 		tag, err := s.tagRepo.FindByName(tagName)
 		if err != nil {
 			newTag := &model.Tag{
-				ID:   utils.GenerateUUID(), // assume you have utils.GenerateUUID()
+				ID:   utils.GenerateUUID(),
+				Name: tagName,
+			}
+			if err := s.tagRepo.Create(newTag); err != nil {
+				return err
+			}
+			tag = newTag
+		}
+
+		questionTag := &model.QuestionTag{
+			QuestionID: question.ID,
+			TagID:      tag.ID,
+		}
+		if err := s.questionTagRepo.Create(questionTag); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// READ
+
+// Basic question only (no options/tags)
+func (s *QuestionService) GetQuestionByID(id string) (*model.Question, error) {
+	return s.questionRepo.GetByID(id)
+}
+
+// Full question with tags and options
+func (s *QuestionService) GetFullQuestionByID(id string) (*model.QuestionWithOptions, error) {
+	return s.questionRepo.GetByIDWithTags(id)
+}
+
+func (s *QuestionService) GetQuestionsByLessonID(lessonID string) ([]*model.QuestionWithOptions, error) {
+	return s.questionRepo.GetByLessonID(lessonID)
+}
+
+func (s *QuestionService) GetQuestionsByTag(tagName string) ([]*model.QuestionWithOptions, error) {
+	return s.questionRepo.GetQuestionsByTag(tagName)
+}
+
+// UPDATE
+func (s *QuestionService) UpdateQuestion(question *model.Question) error {
+	// Step 1: update base question fields
+	if err := s.questionRepo.Update(question); err != nil {
+		return err
+	}
+
+	// Step 2: clear existing tag links
+	if err := s.questionTagRepo.DeleteByQuestionID(question.ID); err != nil {
+		return err
+	}
+
+	// Step 3: recreate tag links
+	for _, tagName := range question.Tags {
+		tag, err := s.tagRepo.FindByName(tagName)
+		if err != nil {
+			// Tag doesn't exist, create it
+			newTag := &model.Tag{
+				ID:   utils.GenerateUUID(),
 				Name: tagName,
 			}
 			err = s.tagRepo.Create(newTag)
@@ -66,24 +122,6 @@ func (s *QuestionService) CreateQuestion(question *model.Question, options []*mo
 	}
 
 	return nil
-}
-
-// READ
-func (s *QuestionService) GetQuestionByID(id string) (*model.Question, error) {
-	return s.questionRepo.GetByID(id)
-}
-
-func (s *QuestionService) GetQuestionsByLessonID(lessonID string) ([]*model.QuestionWithOptions, error) {
-	return s.questionRepo.GetByLessonID(lessonID)
-}
-
-func (s *QuestionService) GetQuestionsByTag(tagName string) ([]*model.QuestionWithOptions, error) {
-	return s.questionRepo.GetQuestionsByTag(tagName)
-}
-
-// UPDATE
-func (s *QuestionService) UpdateQuestion(question *model.Question) error {
-	return s.questionRepo.Update(question)
 }
 
 // DELETE
