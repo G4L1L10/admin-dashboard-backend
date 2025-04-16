@@ -121,11 +121,21 @@ func (s *QuestionService) UpdateQuestion(question *model.Question) error {
 		}
 	}
 
+	// Step 4: cleanup unused tags
+	if err := s.tagRepo.DeleteUnusedTags(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // DELETE
 func (s *QuestionService) DeleteQuestion(id string) error {
-	return s.questionRepo.Delete(id)
+	if err := s.questionRepo.Delete(id); err != nil {
+		return err
+	}
+
+	// Step 2: cleanup unused tags
+	return s.tagRepo.DeleteUnusedTags()
 }
 

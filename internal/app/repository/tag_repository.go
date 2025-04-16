@@ -86,3 +86,15 @@ func (r *TagRepository) Delete(id string) error {
 	return err
 }
 
+// CLEANUP
+func (r *TagRepository) DeleteUnusedTags() error {
+	query := `
+	DELETE FROM tags
+	WHERE id NOT IN (
+		SELECT DISTINCT tag_id FROM question_tags
+	)
+	`
+	_, err := r.db.Exec(query)
+	return err
+}
+
