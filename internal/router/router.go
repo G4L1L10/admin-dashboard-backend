@@ -60,7 +60,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 			lesson.POST("", r.LessonHandler.CreateLesson)
 			lesson.GET("/detail/:id", r.LessonHandler.GetLesson)
 			lesson.GET("/full/:id", r.LessonHandler.GetFullLesson)
-			lesson.GET("/by-course/:course_id", r.LessonHandler.GetLessonsByCourseID) // ✅ NEW
+			lesson.GET("/by-course/:course_id", r.LessonHandler.GetLessonsByCourseID)
 			lesson.GET("/:lesson_id/questions", r.QuestionHandler.GetQuestionsByLesson)
 			lesson.PUT("/:id", r.LessonHandler.UpdateLesson)
 			lesson.DELETE("/:id", r.LessonHandler.DeleteLesson)
@@ -101,4 +101,3 @@ func (r *Router) SetupRouter() *gin.Engine {
 
 	return router
 }
-
