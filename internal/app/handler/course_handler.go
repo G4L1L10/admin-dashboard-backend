@@ -87,4 +87,3 @@ func (h *CourseHandler) DeleteCourse(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Course deleted successfully"})
 }
-

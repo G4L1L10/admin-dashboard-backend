@@ -61,3 +61,5 @@ tag_id UUID REFERENCES tags(id),
 PRIMARY KEY (question_id, tag_id),
 created_at TIMESTAMP DEFAULT now()
 );
+
+git rm --cached .env
