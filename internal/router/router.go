@@ -36,7 +36,7 @@ func NewRouter(
 func (r *Router) SetupRouter() *gin.Engine {
 	router := gin.New()
 
-	// Apply global middlewares
+	// Global middlewares
 	router.Use(middleware.LoggerMiddleware())
 	router.Use(middleware.RecoveryMiddleware())
 	router.Use(middleware.CORSMiddleware())
@@ -121,6 +121,9 @@ func (r *Router) SetupRouter() *gin.Engine {
 
 		// ===== Stats =====
 		api.GET("/stats", r.StatsHandler.GetStats)
+
+		// ===== Media Upload (Protected) =====
+		api.POST("/media/upload", middleware.AuthMiddleware(), handler.UploadMedia)
 	}
 
 	return router

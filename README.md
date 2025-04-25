@@ -63,3 +63,16 @@ created_at TIMESTAMP DEFAULT now()
 );
 
 git rm --cached .env
+
+# Testing without token
+
+curl -X POST http://localhost:8080/api/courses \
+ -H "Content-Type: application/json" \
+ -d '{"title": "Test Course", "description": "Sample"}'
+
+# Testing with token
+
+curl -X POST http://localhost:8080/api/courses \
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer <your_token_here>" \
+ -d '{"title": "Test Course", "description": "Sample"}'
