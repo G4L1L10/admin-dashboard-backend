@@ -10,7 +10,7 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-// UploadToGCS uploads a file to GCS and returns a signed URL valid for 15 minutes.
+// UploadToGCS uploads a file to GCS and returns the GCS object name (not signed URL).
 func UploadToGCS(file multipart.File, fileHeader *multipart.FileHeader, bucketName string) (string, error) {
 	ctx := context.Background()
 
@@ -34,21 +34,15 @@ func UploadToGCS(file multipart.File, fileHeader *multipart.FileHeader, bucketNa
 	wc.ContentType = contentType
 
 	// Upload file data
-	_, copyErr := io.Copy(wc, file)
-	if copyErr != nil {
-		return "", fmt.Errorf("failed to write file to GCS: %w", copyErr)
-	}
-	closeErr := wc.Close()
-	if closeErr != nil {
-		return "", fmt.Errorf("failed to close GCS writer: %w", closeErr)
+	if _, err := io.Copy(wc, file); err != nil {
+		return "", fmt.Errorf("failed to write file to GCS: %w", err)
 	}
 
-	// Generate a signed URL
-	signedURL, signErr := generateSignedURL(bucketName, objectName, 15*time.Minute)
-	if signErr != nil {
-		return "", fmt.Errorf("failed to generate signed URL: %w", signErr)
+	if err := wc.Close(); err != nil {
+		return "", fmt.Errorf("failed to close GCS writer: %w", err)
 	}
 
-	return signedURL, nil
+	// ✅ Return the object path (not a signed URL)
+	return objectName, nil
 }
 

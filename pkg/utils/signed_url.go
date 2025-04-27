@@ -11,7 +11,7 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-func generateSignedURL(bucketName, objectName string, expiresIn time.Duration) (string, error) {
+func GenerateSignedURL(bucketName, objectName string, expiresIn time.Duration) (string, error) {
 	ctx := context.Background()
 
 	serviceAccountEmail := os.Getenv("GCS_SIGNER_EMAIL")
