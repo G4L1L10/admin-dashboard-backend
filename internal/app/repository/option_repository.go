@@ -41,10 +41,16 @@ func (r *OptionRepository) Update(option *model.Option) error {
 	return err
 }
 
+// Delete all options for a specific question
+func (r *OptionRepository) DeleteByQuestionID(questionID string) error {
+	query := `DELETE FROM options WHERE question_id = $1`
+	_, err := r.db.Exec(query, questionID)
+	return err
+}
+
 // DELETE
 func (r *OptionRepository) Delete(id string) error {
 	query := `DELETE FROM options WHERE id = $1`
 	_, err := r.db.Exec(query, id)
 	return err
 }
-

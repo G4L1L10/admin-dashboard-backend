@@ -23,6 +23,11 @@ func (s *OptionService) GetOptionByID(id string) (*model.Option, error) {
 	return s.optionRepo.GetByID(id)
 }
 
+// Delete all options for a given question
+func (s *OptionService) DeleteOptionsByQuestionID(questionID string) error {
+	return s.optionRepo.DeleteByQuestionID(questionID)
+}
+
 // UPDATE
 func (s *OptionService) UpdateOption(option *model.Option) error {
 	return s.optionRepo.Update(option)
@@ -32,4 +37,3 @@ func (s *OptionService) UpdateOption(option *model.Option) error {
 func (s *OptionService) DeleteOption(id string) error {
 	return s.optionRepo.Delete(id)
 }
-

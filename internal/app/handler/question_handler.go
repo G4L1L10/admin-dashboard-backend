@@ -13,10 +13,14 @@ import (
 
 type QuestionHandler struct {
 	questionService *service.QuestionService
+	optionService   *service.OptionService
 }
 
-func NewQuestionHandler(questionService *service.QuestionService) *QuestionHandler {
-	return &QuestionHandler{questionService: questionService}
+func NewQuestionHandler(qs *service.QuestionService, os *service.OptionService) *QuestionHandler {
+	return &QuestionHandler{
+		questionService: qs,
+		optionService:   os,
+	}
 }
 
 // POST /api/questions
@@ -144,35 +148,51 @@ func (h *QuestionHandler) GetQuestionsByTag(c *gin.Context) {
 func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 	id := c.Param("id")
 
-	var req struct {
-		QuestionText string   `json:"question_text"`
-		QuestionType string   `json:"question_type"`
-		ImageURL     *string  `json:"image_url"`
-		AudioURL     *string  `json:"audio_url"`
-		Answer       string   `json:"answer"`
-		Explanation  string   `json:"explanation"`
-		Tags         []string `json:"tags"`
-	}
-
+	var req model.QuestionWithOptions
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid request", err.Error()))
 		return
 	}
 
+	// Get existing question to retrieve lesson_id
+	existingQuestion, err := h.questionService.GetQuestionByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, utils.NewErrorResponse("Question not found", err.Error()))
+		return
+	}
+
+	// Update core question fields
 	question := &model.Question{
 		ID:           id,
+		LessonID:     existingQuestion.LessonID,
 		QuestionText: req.QuestionText,
 		QuestionType: req.QuestionType,
 		ImageURL:     req.ImageURL,
 		AudioURL:     req.AudioURL,
-		Answer:       req.Answer,
-		Explanation:  req.Explanation,
-		Tags:         req.Tags,
+		Answer:       utils.DerefString(req.Answer),
+		Explanation:  utils.DerefString(req.Explanation),
 	}
-
 	if err := h.questionService.UpdateQuestion(question); err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to update question", err.Error()))
 		return
+	}
+
+	// 🚨 Replace all options
+	if err := h.optionService.DeleteOptionsByQuestionID(id); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to delete old options", err.Error()))
+		return
+	}
+
+	for _, text := range req.Options {
+		opt := &model.Option{
+			ID:         utils.GenerateUUID(),
+			QuestionID: id,
+			OptionText: text,
+		}
+		if err := h.optionService.CreateOption(opt); err != nil {
+			c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create option", err.Error()))
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Question updated successfully"})
@@ -189,4 +209,3 @@ func (h *QuestionHandler) DeleteQuestion(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Question deleted successfully"})
 }
-
