@@ -17,9 +17,22 @@ func NewQuestionRepository(db *sql.DB) *QuestionRepository {
 
 // CREATE
 func (r *QuestionRepository) Create(question *model.Question) error {
-	query := `INSERT INTO questions (id, lesson_id, question_text, question_type, image_url, audio_url, answer, explanation)
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-	_, err := r.db.Exec(query, question.ID, question.LessonID, question.QuestionText, question.QuestionType, question.ImageURL, question.AudioURL, question.Answer, question.Explanation)
+	// Step 1: Get current max position for this lesson
+	var maxPos int
+	err := r.db.QueryRow(`
+		SELECT COALESCE(MAX(position), 0) 
+		FROM questions 
+		WHERE lesson_id = $1
+	`, question.LessonID).Scan(&maxPos)
+	if err != nil {
+		return err
+	}
+	question.Position = maxPos + 1
+
+	// Step 2: Insert question with position
+	query := `INSERT INTO questions (id, lesson_id, question_text, question_type, image_url, audio_url, answer, explanation, position)
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	_, err = r.db.Exec(query, question.ID, question.LessonID, question.QuestionText, question.QuestionType, question.ImageURL, question.AudioURL, question.Answer, question.Explanation, question.Position)
 	return err
 }
 
@@ -41,6 +54,7 @@ func (r *QuestionRepository) GetByIDWithTags(id string) (*model.QuestionWithOpti
 	query := `
 	SELECT 
 		q.id, q.lesson_id, q.question_text, q.question_type, q.image_url, q.audio_url, q.answer, q.explanation,
+		q.position,
 		o.option_text,
 		t.name
 	FROM 
@@ -69,10 +83,13 @@ func (r *QuestionRepository) GetByIDWithTags(id string) (*model.QuestionWithOpti
 		var (
 			qID, lessonID, questionText, questionType string
 			imageURL, audioURL, answer, explanation   *string
+			position                                  int
 			optionText, tagName                       *string
 		)
 
-		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText, &tagName)
+		err := rows.Scan(&qID, &lessonID, &questionText, &questionType,
+			&imageURL, &audioURL, &answer, &explanation, &position,
+			&optionText, &tagName)
 		if err != nil {
 			return nil, err
 		}
@@ -89,6 +106,7 @@ func (r *QuestionRepository) GetByIDWithTags(id string) (*model.QuestionWithOpti
 				Explanation:  explanation,
 				Options:      []string{},
 				Tags:         []string{},
+				Position:     position,
 			}
 		}
 
@@ -113,6 +131,7 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 	query := `
 	SELECT 
 		q.id, q.lesson_id, q.question_text, q.question_type, q.image_url, q.audio_url, q.answer, q.explanation,
+		q.position, -- ✅ Includes position
 		o.option_text,
 		t.name
 	FROM 
@@ -126,7 +145,7 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 	WHERE 
 		q.lesson_id = $1
 	ORDER BY 
-		q.created_at ASC, o.created_at ASC, t.name ASC
+		q.position ASC, o.created_at ASC, t.name ASC
 	`
 
 	rows, err := r.db.Query(query, lessonID)
@@ -136,15 +155,19 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 	defer rows.Close()
 
 	questionMap := make(map[string]*model.QuestionWithOptions)
+	questionList := []*model.QuestionWithOptions{} // ✅ Track order
 
 	for rows.Next() {
 		var (
 			qID, lessonID, questionText, questionType string
 			imageURL, audioURL, answer, explanation   *string
+			position                                  int
 			optionText, tagName                       *string
 		)
 
-		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText, &tagName)
+		err := rows.Scan(&qID, &lessonID, &questionText, &questionType,
+			&imageURL, &audioURL, &answer, &explanation,
+			&position, &optionText, &tagName)
 		if err != nil {
 			return nil, err
 		}
@@ -162,8 +185,10 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 				Explanation:  explanation,
 				Options:      []string{},
 				Tags:         []string{},
+				Position:     position,
 			}
 			questionMap[qID] = q
+			questionList = append(questionList, q) // ✅ preserve order
 		}
 
 		if optionText != nil && !slices.Contains(q.Options, *optionText) {
@@ -174,18 +199,14 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 		}
 	}
 
-	var questions []*model.QuestionWithOptions
-	for _, q := range questionMap {
-		questions = append(questions, q)
-	}
-
-	return questions, nil
+	return questionList, nil
 }
 
 func (r *QuestionRepository) GetQuestionsByTag(tagName string) ([]*model.QuestionWithOptions, error) {
 	query := `
 	SELECT 
 		q.id, q.lesson_id, q.question_text, q.question_type, q.image_url, q.audio_url, q.answer, q.explanation,
+		q.position,
 		o.option_text,
 		t.name
 	FROM 
@@ -199,7 +220,7 @@ func (r *QuestionRepository) GetQuestionsByTag(tagName string) ([]*model.Questio
 	WHERE 
 		t.name = $1
 	ORDER BY 
-		q.created_at ASC, o.created_at ASC
+		q.position ASC, o.created_at ASC
 	`
 
 	rows, err := r.db.Query(query, tagName)
@@ -214,10 +235,13 @@ func (r *QuestionRepository) GetQuestionsByTag(tagName string) ([]*model.Questio
 		var (
 			qID, lessonID, questionText, questionType string
 			imageURL, audioURL, answer, explanation   *string
+			position                                  int
 			optionText, tagNameFromDB                 *string
 		)
 
-		err := rows.Scan(&qID, &lessonID, &questionText, &questionType, &imageURL, &audioURL, &answer, &explanation, &optionText, &tagNameFromDB)
+		err := rows.Scan(&qID, &lessonID, &questionText, &questionType,
+			&imageURL, &audioURL, &answer, &explanation, &position,
+			&optionText, &tagNameFromDB)
 		if err != nil {
 			return nil, err
 		}
@@ -235,6 +259,7 @@ func (r *QuestionRepository) GetQuestionsByTag(tagName string) ([]*model.Questio
 				Explanation:  explanation,
 				Options:      []string{},
 				Tags:         []string{},
+				Position:     position,
 			}
 			questionMap[qID] = q
 		}

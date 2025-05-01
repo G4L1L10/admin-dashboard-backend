@@ -12,6 +12,8 @@ type Question struct {
 	Answer       string    `json:"answer"`
 	Explanation  string    `json:"explanation"`
 	Tags         []string  `json:"tags,omitempty"`
+	Position     int       `json:"position"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+

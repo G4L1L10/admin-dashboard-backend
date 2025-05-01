@@ -11,4 +11,6 @@ type QuestionWithOptions struct {
 	Explanation  *string  `json:"explanation"`
 	Options      []string `json:"options"`
 	Tags         []string `json:"tags"`
+	Position     int      `json:"position"` // ✅ Add this line
 }
+
