@@ -23,6 +23,11 @@ func UploadMedia(c *gin.Context) {
 	}
 	defer file.Close()
 
+	// Optional metadata (can be blank)
+	courseID := c.PostForm("course_id")
+	lessonID := c.PostForm("lesson_id")
+	questionID := c.PostForm("question_id")
+
 	// Read bucket name from environment
 	bucket := os.Getenv("GCS_BUCKET_NAME")
 	if bucket == "" {
@@ -37,8 +42,8 @@ func UploadMedia(c *gin.Context) {
 	fmt.Println("🧾 Content-Type:", fileHeader.Header.Get("Content-Type"))
 	fmt.Println("🎯 Target bucket:", bucket)
 
-	// Upload to GCS and get signed URL
-	url, err := utils.UploadToGCS(file, fileHeader, bucket)
+	// Upload to GCS and get object path
+	objectPath, err := utils.UploadToGCS(file, fileHeader, bucket, courseID, lessonID, questionID)
 	if err != nil {
 		fmt.Println("❌ Upload error:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -48,12 +53,10 @@ func UploadMedia(c *gin.Context) {
 		return
 	}
 
-	// Confirm success
-	fmt.Println("✅ Upload successful:", url)
+	fmt.Println("✅ Upload successful:", objectPath)
 
-	// Respond with signed URL
 	c.JSON(http.StatusOK, gin.H{
-		"url":     url,
+		"url":     objectPath,
 		"message": "Upload successful",
 	})
 }

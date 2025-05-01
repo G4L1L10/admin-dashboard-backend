@@ -76,3 +76,7 @@ curl -X POST http://localhost:8080/api/courses \
  -H "Content-Type: application/json" \
  -H "Authorization: Bearer <your_token_here>" \
  -d '{"title": "Test Course", "description": "Sample"}'
+
+# gcloud auth login
+
+gcloud auth application-default login

@@ -11,7 +11,14 @@ import (
 )
 
 // UploadToGCS uploads a file to GCS and returns the GCS object name (not signed URL).
-func UploadToGCS(file multipart.File, fileHeader *multipart.FileHeader, bucketName string) (string, error) {
+func UploadToGCS(
+	file multipart.File,
+	fileHeader *multipart.FileHeader,
+	bucketName string,
+	courseID string,
+	lessonID string,
+	questionID string,
+) (string, error) {
 	ctx := context.Background()
 
 	client, err := storage.NewClient(ctx)
@@ -20,20 +27,32 @@ func UploadToGCS(file multipart.File, fileHeader *multipart.FileHeader, bucketNa
 	}
 	defer client.Close()
 
-	// Generate a unique object name
-	objectName := fmt.Sprintf("uploads/%d_%s", time.Now().UnixNano(), fileHeader.Filename)
+	// Build custom folder structure
+	folder := "uploads"
+	if courseID != "" {
+		folder += fmt.Sprintf("/course_%s", courseID)
+	}
+	if lessonID != "" {
+		folder += fmt.Sprintf("/lesson_%s", lessonID)
+	}
+	if questionID != "" {
+		folder += fmt.Sprintf("/question_%s", questionID)
+	}
+
+	// Generate unique file name
+	objectName := fmt.Sprintf("%s/%d_%s", folder, time.Now().UnixNano(), fileHeader.Filename)
 
 	// Prepare GCS writer
 	wc := client.Bucket(bucketName).Object(objectName).NewWriter(ctx)
 
-	// Use the content type if provided, or fall back
+	// Content-Type fallback
 	contentType := fileHeader.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 	wc.ContentType = contentType
 
-	// Upload file data
+	// Upload the file
 	if _, err := io.Copy(wc, file); err != nil {
 		return "", fmt.Errorf("failed to write file to GCS: %w", err)
 	}
@@ -42,7 +61,6 @@ func UploadToGCS(file multipart.File, fileHeader *multipart.FileHeader, bucketNa
 		return "", fmt.Errorf("failed to close GCS writer: %w", err)
 	}
 
-	// ✅ Return the object path (not a signed URL)
 	return objectName, nil
 }
 
