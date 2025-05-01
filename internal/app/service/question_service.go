@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/repository"
 	"github.com/G4L1L10/admin-dashboard-backend/pkg/utils"
@@ -39,7 +41,16 @@ func (s *QuestionService) CreateQuestion(question *model.Question, options []*mo
 		}
 	}
 
+	// ✅ Deduplicate tag names
+	seen := make(map[string]bool)
+
 	for _, tagName := range tags {
+		tagName = strings.TrimSpace(tagName)
+		if tagName == "" || seen[tagName] {
+			continue
+		}
+		seen[tagName] = true
+
 		tag, err := s.tagRepo.FindByName(tagName)
 		if err != nil {
 			newTag := &model.Tag{
@@ -82,6 +93,14 @@ func (s *QuestionService) GetQuestionsByLessonID(lessonID string) ([]*model.Ques
 
 func (s *QuestionService) GetQuestionsByTag(tagName string) ([]*model.QuestionWithOptions, error) {
 	return s.questionRepo.GetQuestionsByTag(tagName)
+}
+
+func (s *QuestionService) RemoveAllTagsForQuestion(questionID string) error {
+	return s.questionTagRepo.DeleteAllByQuestionID(questionID)
+}
+
+func (s *QuestionService) AttachTagToQuestion(questionID, tagID string) error {
+	return s.questionTagRepo.AttachTag(questionID, tagID)
 }
 
 // UPDATE
@@ -138,4 +157,3 @@ func (s *QuestionService) DeleteQuestion(id string) error {
 	// Step 2: cleanup unused tags
 	return s.tagRepo.DeleteUnusedTags()
 }
-

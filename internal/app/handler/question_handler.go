@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/service"
@@ -14,12 +15,18 @@ import (
 type QuestionHandler struct {
 	questionService *service.QuestionService
 	optionService   *service.OptionService
+	tagService      *service.TagService
 }
 
-func NewQuestionHandler(qs *service.QuestionService, os *service.OptionService) *QuestionHandler {
+func NewQuestionHandler(
+	questionService *service.QuestionService,
+	optionService *service.OptionService,
+	tagService *service.TagService,
+) *QuestionHandler {
 	return &QuestionHandler{
-		questionService: qs,
-		optionService:   os,
+		questionService: questionService,
+		optionService:   optionService,
+		tagService:      tagService,
 	}
 }
 
@@ -43,6 +50,7 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 		return
 	}
 
+	// Validate matching pairs
 	if req.QuestionType == "matching_pairs" {
 		if len(req.Pairs) > 8 {
 			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Too many matching pairs", "Maximum allowed is 8 pairs"))
@@ -54,15 +62,14 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 				return
 			}
 		}
-
 		var parsedAnswer [][]string
 		if err := json.Unmarshal([]byte(req.Answer), &parsedAnswer); err != nil {
 			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid matching pairs answer format", err.Error()))
 			return
 		}
 	} else {
-		if req.Answer == "" {
-			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Answer required", "Answer is required for non-matching pairs questions"))
+		if strings.TrimSpace(req.Answer) == "" {
+			c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Answer required", "Answer is required for non-matching questions"))
 			return
 		}
 	}
@@ -78,6 +85,7 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 		Explanation:  req.Explanation,
 	}
 
+	// Build options
 	var options []*model.Option
 	if req.QuestionType == "matching_pairs" {
 		for _, pair := range req.Pairs {
@@ -88,16 +96,29 @@ func (h *QuestionHandler) CreateQuestion(c *gin.Context) {
 			})
 		}
 	} else {
-		for _, optText := range req.Options {
+		for _, text := range req.Options {
 			options = append(options, &model.Option{
 				ID:         utils.GenerateUUID(),
 				QuestionID: question.ID,
-				OptionText: optText,
+				OptionText: text,
 			})
 		}
 	}
 
-	if err := h.questionService.CreateQuestion(question, options, req.Tags); err != nil {
+	// ✅ Deduplicate and sanitize tags
+	seenTags := make(map[string]bool)
+	var cleanTags []string
+	for _, tag := range req.Tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" || seenTags[tag] {
+			continue
+		}
+		seenTags[tag] = true
+		cleanTags = append(cleanTags, tag)
+	}
+
+	// Save question with options and tags
+	if err := h.questionService.CreateQuestion(question, options, cleanTags); err != nil {
 		log.Printf("Failed to create question: %+v\n", err)
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create question", err.Error()))
 		return
@@ -114,33 +135,28 @@ func (h *QuestionHandler) GetQuestion(c *gin.Context) {
 		c.JSON(http.StatusNotFound, utils.NewErrorResponse("Question not found", err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, question)
 }
 
 // GET /api/lessons/:lesson_id/questions
 func (h *QuestionHandler) GetQuestionsByLesson(c *gin.Context) {
 	lessonID := c.Param("lesson_id")
-
 	questions, err := h.questionService.GetQuestionsByLessonID(lessonID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch questions", err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, questions)
 }
 
 // GET /api/questions?tag=grammar
 func (h *QuestionHandler) GetQuestionsByTag(c *gin.Context) {
 	tag := c.Query("tag")
-
 	questions, err := h.questionService.GetQuestionsByTag(tag)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch questions by tag", err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, questions)
 }
 
@@ -154,14 +170,12 @@ func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 		return
 	}
 
-	// Get existing question to retrieve lesson_id
 	existingQuestion, err := h.questionService.GetQuestionByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, utils.NewErrorResponse("Question not found", err.Error()))
 		return
 	}
 
-	// Update core question fields
 	question := &model.Question{
 		ID:           id,
 		LessonID:     existingQuestion.LessonID,
@@ -172,17 +186,17 @@ func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 		Answer:       utils.DerefString(req.Answer),
 		Explanation:  utils.DerefString(req.Explanation),
 	}
+
 	if err := h.questionService.UpdateQuestion(question); err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to update question", err.Error()))
 		return
 	}
 
-	// 🚨 Replace all options
+	// 🚨 Replace options
 	if err := h.optionService.DeleteOptionsByQuestionID(id); err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to delete old options", err.Error()))
 		return
 	}
-
 	for _, text := range req.Options {
 		opt := &model.Option{
 			ID:         utils.GenerateUUID(),
@@ -195,17 +209,37 @@ func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 		}
 	}
 
+	// ✅ Replace tags safely
+	if err := h.questionService.RemoveAllTagsForQuestion(id); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to clear tags", err.Error()))
+		return
+	}
+	for _, tagName := range req.Tags {
+		tagName = strings.TrimSpace(tagName)
+		if tagName == "" {
+			continue
+		}
+		tagID, err := h.tagService.FindOrCreate(tagName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to process tag", err.Error()))
+			return
+		}
+		if err := h.questionService.AttachTagToQuestion(id, tagID); err != nil {
+			c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to attach tag", err.Error()))
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Question updated successfully"})
 }
 
 // DELETE /api/questions/:id
 func (h *QuestionHandler) DeleteQuestion(c *gin.Context) {
 	id := c.Param("id")
-
 	if err := h.questionService.DeleteQuestion(id); err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to delete question", err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "Question deleted successfully"})
 }
+

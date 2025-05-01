@@ -72,6 +72,21 @@ func (r *TagRepository) SearchByName(keyword string) ([]*model.Tag, error) {
 	return tags, nil
 }
 
+func (r *TagRepository) GetByName(name string) (*model.Tag, error) {
+	query := `SELECT id, name, created_at, updated_at FROM tags WHERE name = $1`
+	row := r.db.QueryRow(query, name)
+
+	var tag model.Tag
+	err := row.Scan(&tag.ID, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil // tag doesn't exist yet
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &tag, nil
+}
+
 // UPDATE
 func (r *TagRepository) Update(tag *model.Tag) error {
 	query := `UPDATE tags SET name = $1, updated_at = NOW() WHERE id = $2`
@@ -97,4 +112,3 @@ func (r *TagRepository) DeleteUnusedTags() error {
 	_, err := r.db.Exec(query)
 	return err
 }
-

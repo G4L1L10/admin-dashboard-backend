@@ -36,7 +36,7 @@ func Start() error {
 	// 5. Initialize handlers
 	courseHandler := handler.NewCourseHandler(courseService)
 	lessonHandler := handler.NewLessonHandler(lessonService)
-	questionHandler := handler.NewQuestionHandler(questionService, optionService)
+	questionHandler := handler.NewQuestionHandler(questionService, optionService, tagService)
 	optionHandler := handler.NewOptionHandler(optionService)
 	tagHandler := handler.NewTagHandler(tagService)
 	statsHandler := handler.NewStatsHandler(statsService) // ✅ Add this

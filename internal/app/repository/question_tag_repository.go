@@ -14,6 +14,18 @@ func NewQuestionTagRepository(db *sql.DB) *QuestionTagRepository {
 	return &QuestionTagRepository{db: db}
 }
 
+func (r *QuestionTagRepository) AttachTag(questionID, tagID string) error {
+	query := `
+		INSERT INTO question_tags (question_id, tag_id)
+		SELECT $1, $2
+		WHERE NOT EXISTS (
+			SELECT 1 FROM question_tags WHERE question_id = $1 AND tag_id = $2
+		)
+	`
+	_, err := r.db.Exec(query, questionID, tagID)
+	return err
+}
+
 // CREATE
 func (r *QuestionTagRepository) Create(qt *model.QuestionTag) error {
 	query := `INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2)`
@@ -29,6 +41,12 @@ func (r *QuestionTagRepository) Delete(questionID, tagID string) error {
 }
 
 func (r *QuestionTagRepository) DeleteByQuestionID(questionID string) error {
+	query := `DELETE FROM question_tags WHERE question_id = $1`
+	_, err := r.db.Exec(query, questionID)
+	return err
+}
+
+func (r *QuestionTagRepository) DeleteAllByQuestionID(questionID string) error {
 	query := `DELETE FROM question_tags WHERE question_id = $1`
 	_, err := r.db.Exec(query, questionID)
 	return err
