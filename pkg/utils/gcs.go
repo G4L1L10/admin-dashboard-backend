@@ -64,3 +64,17 @@ func UploadToGCS(
 	return objectName, nil
 }
 
+// DeleteFromGCS deletes an object from GCS by its object name (not URL).
+func DeleteFromGCS(ctx context.Context, bucketName, objectPath string) error {
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %w", err)
+	}
+	defer client.Close()
+
+	obj := client.Bucket(bucketName).Object(objectPath)
+	if err := obj.Delete(ctx); err != nil {
+		return fmt.Errorf("failed to delete object %s: %w", objectPath, err)
+	}
+	return nil
+}

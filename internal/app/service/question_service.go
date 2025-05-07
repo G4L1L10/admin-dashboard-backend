@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"strings"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
@@ -105,27 +107,52 @@ func (s *QuestionService) AttachTagToQuestion(questionID, tagID string) error {
 
 // UPDATE
 func (s *QuestionService) UpdateQuestion(question *model.Question) error {
-	// Step 1: update base question fields
+	ctx := context.Background()
+	const bucketName = "cms-media-1" // replace with your actual bucket if different
+
+	// Step 0: Get current question record for comparison
+	oldQuestion, err := s.questionRepo.GetByID(question.ID)
+	if err != nil {
+		return err
+	}
+
+	// Step 1: Compare image and delete old if changed
+	if oldQuestion.ImageURL != nil && question.ImageURL != nil && *oldQuestion.ImageURL != *question.ImageURL {
+		go func(oldPath string) {
+			if err := utils.DeleteFromGCS(ctx, bucketName, oldPath); err != nil {
+				fmt.Printf("Failed to delete old image: %v\n", err)
+			}
+		}(*oldQuestion.ImageURL)
+	}
+
+	// Step 2: Compare audio and delete old if changed
+	if oldQuestion.AudioURL != nil && question.AudioURL != nil && *oldQuestion.AudioURL != *question.AudioURL {
+		go func(oldPath string) {
+			if err := utils.DeleteFromGCS(ctx, bucketName, oldPath); err != nil {
+				fmt.Printf("Failed to delete old audio: %v\n", err)
+			}
+		}(*oldQuestion.AudioURL)
+	}
+
+	// Step 3: Update question fields in DB
 	if err := s.questionRepo.Update(question); err != nil {
 		return err
 	}
 
-	// Step 2: clear existing tag links
+	// Step 4: Remove existing tag links
 	if err := s.questionTagRepo.DeleteByQuestionID(question.ID); err != nil {
 		return err
 	}
 
-	// Step 3: recreate tag links
+	// Step 5: Recreate tag links
 	for _, tagName := range question.Tags {
 		tag, err := s.tagRepo.FindByName(tagName)
 		if err != nil {
-			// Tag doesn't exist, create it
 			newTag := &model.Tag{
 				ID:   utils.GenerateUUID(),
 				Name: tagName,
 			}
-			err = s.tagRepo.Create(newTag)
-			if err != nil {
+			if err := s.tagRepo.Create(newTag); err != nil {
 				return err
 			}
 			tag = newTag
@@ -140,7 +167,7 @@ func (s *QuestionService) UpdateQuestion(question *model.Question) error {
 		}
 	}
 
-	// Step 4: cleanup unused tags
+	// Step 6: Cleanup unused tags
 	if err := s.tagRepo.DeleteUnusedTags(); err != nil {
 		return err
 	}
