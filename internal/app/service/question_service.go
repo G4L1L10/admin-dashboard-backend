@@ -177,10 +177,37 @@ func (s *QuestionService) UpdateQuestion(question *model.Question) error {
 
 // DELETE
 func (s *QuestionService) DeleteQuestion(id string) error {
+	ctx := context.Background()
+	const bucketName = "cms-media-1" // change if needed
+
+	// Step 1: Fetch the question to get media references
+	q, err := s.questionRepo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	// Step 2: Delete the DB record
 	if err := s.questionRepo.Delete(id); err != nil {
 		return err
 	}
 
-	// Step 2: cleanup unused tags
+	// Step 3: Remove associated media if present
+	if q.ImageURL != nil && *q.ImageURL != "" {
+		go func(path string) {
+			if err := utils.DeleteFromGCS(ctx, bucketName, path); err != nil {
+				fmt.Printf("Failed to delete image on question deletion: %v\n", err)
+			}
+		}(*q.ImageURL)
+	}
+
+	if q.AudioURL != nil && *q.AudioURL != "" {
+		go func(path string) {
+			if err := utils.DeleteFromGCS(ctx, bucketName, path); err != nil {
+				fmt.Printf("Failed to delete audio on question deletion: %v\n", err)
+			}
+		}(*q.AudioURL)
+	}
+
+	// Step 4: Cleanup unused tags
 	return s.tagRepo.DeleteUnusedTags()
 }
