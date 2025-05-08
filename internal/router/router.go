@@ -123,7 +123,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 		api.GET("/stats", r.StatsHandler.GetStats)
 
 		// ===== Media Upload (Protected) =====
-		api.POST("/media/upload", middleware.AuthMiddleware(), handler.UploadMedia)
+		//		api.POST("/media/upload", middleware.AuthMiddleware(), handler.UploadMedia)
 		api.GET("/media/signed-url", handler.GetSignedURL)
 		api.GET("/media/upload-url", handler.GetUploadURL)
 
