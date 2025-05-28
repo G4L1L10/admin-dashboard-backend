@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -197,23 +198,42 @@ func (h *QuestionHandler) UpdateQuestion(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to delete old options", err.Error()))
 		return
 	}
-	for _, text := range req.Options {
-		opt := &model.Option{
-			ID:         utils.GenerateUUID(),
-			QuestionID: id,
-			OptionText: text,
+
+	if req.QuestionType == "matching_pairs" {
+		for _, pair := range req.Pairs {
+			if len(pair) != 2 {
+				continue // skip invalid pairs
+			}
+			opt := &model.Option{
+				ID:         utils.GenerateUUID(),
+				QuestionID: id,
+				OptionText: fmt.Sprintf("%s :: %s", pair[0], pair[1]),
+			}
+			if err := h.optionService.CreateOption(opt); err != nil {
+				c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create matching pair option", err.Error()))
+				return
+			}
 		}
-		if err := h.optionService.CreateOption(opt); err != nil {
-			c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create option", err.Error()))
-			return
+	} else {
+		for _, text := range req.Options {
+			opt := &model.Option{
+				ID:         utils.GenerateUUID(),
+				QuestionID: id,
+				OptionText: text,
+			}
+			if err := h.optionService.CreateOption(opt); err != nil {
+				c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to create option", err.Error()))
+				return
+			}
 		}
 	}
 
-	// ✅ Replace tags safely
+	// ✅ Replace tags
 	if err := h.questionService.RemoveAllTagsForQuestion(id); err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to clear tags", err.Error()))
 		return
 	}
+
 	for _, tagName := range req.Tags {
 		tagName = strings.TrimSpace(tagName)
 		if tagName == "" {
@@ -242,4 +262,3 @@ func (h *QuestionHandler) DeleteQuestion(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Question deleted successfully"})
 }
-

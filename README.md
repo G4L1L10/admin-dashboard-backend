@@ -80,5 +80,3 @@ curl -X POST http://localhost:8080/api/courses \
 # gcloud auth login
 
 gcloud auth application-default login
-
-hello
