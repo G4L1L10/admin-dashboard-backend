@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
+	"github.com/G4L1L10/admin-dashboard-backend/pkg/utils"
 )
 
 type CourseRepository struct {
@@ -41,7 +42,7 @@ func (r *CourseRepository) ListCourses() ([]*model.Course, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer utils.SafeCloseRows(rows)
 
 	var courses []*model.Course
 	for rows.Next() {

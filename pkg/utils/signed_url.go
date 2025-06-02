@@ -24,13 +24,15 @@ func GenerateSignedURL(bucketName, objectName string, expiresIn time.Duration) (
 	if err != nil {
 		return "", fmt.Errorf("failed to create IAM credentials client: %w", err)
 	}
-	defer iamClient.Close()
+	defer func() {
+		if cerr := iamClient.Close(); cerr != nil {
+			fmt.Fprintf(os.Stderr, "failed to close IAM credentials client: %v\n", cerr)
+		}
+	}()
 
-	// Set up a custom SignBytes function using IAM credentials API
+	// Custom signer function
 	signBytes := func(b []byte) ([]byte, error) {
-		var resp *credentialspb.SignBlobResponse // Declare resp first
-
-		resp, err = iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
+		resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
 			Name:    fmt.Sprintf("projects/-/serviceAccounts/%s", serviceAccountEmail),
 			Payload: b,
 		})
@@ -55,4 +57,3 @@ func GenerateSignedURL(bucketName, objectName string, expiresIn time.Duration) (
 
 	return url, nil
 }
-

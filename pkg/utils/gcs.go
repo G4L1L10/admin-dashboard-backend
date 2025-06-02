@@ -25,7 +25,11 @@ func UploadToGCS(
 	if err != nil {
 		return "", fmt.Errorf("failed to create GCS client: %w", err)
 	}
-	defer client.Close()
+	defer func() {
+		if cerr := client.Close(); cerr != nil {
+			fmt.Printf("failed to close GCS client: %v\n", cerr)
+		}
+	}()
 
 	// Build custom folder structure
 	folder := "uploads"
@@ -70,7 +74,11 @@ func DeleteFromGCS(ctx context.Context, bucketName, objectPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create GCS client: %w", err)
 	}
-	defer client.Close()
+	defer func() {
+		if cerr := client.Close(); cerr != nil {
+			fmt.Printf("failed to close GCS client: %v\n", cerr)
+		}
+	}()
 
 	obj := client.Bucket(bucketName).Object(objectPath)
 	if err := obj.Delete(ctx); err != nil {

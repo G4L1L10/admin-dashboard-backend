@@ -25,7 +25,11 @@ func GenerateV4UploadURL(bucketName, objectName, contentType string) (string, er
 	if err != nil {
 		return "", fmt.Errorf("failed to create IAM credentials client: %w", err)
 	}
-	defer iamClient.Close()
+	defer func() {
+		if cerr := iamClient.Close(); cerr != nil {
+			fmt.Fprintf(os.Stderr, "failed to close IAM credentials client: %v\n", cerr)
+		}
+	}()
 
 	signBytes := func(b []byte) ([]byte, error) {
 		resp, signErr := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
@@ -54,4 +58,3 @@ func GenerateV4UploadURL(bucketName, objectName, contentType string) (string, er
 
 	return signedURL, nil
 }
-

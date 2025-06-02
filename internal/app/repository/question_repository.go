@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
+	"github.com/G4L1L10/admin-dashboard-backend/pkg/utils"
 )
 
 type QuestionRepository struct {
@@ -73,7 +74,7 @@ func (r *QuestionRepository) GetByIDWithTags(id string) (*model.QuestionWithOpti
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer utils.SafeCloseRows(rows)
 
 	var question *model.QuestionWithOptions
 	optionSet := make(map[string]bool)
@@ -152,7 +153,7 @@ func (r *QuestionRepository) GetByLessonID(lessonID string) ([]*model.QuestionWi
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer utils.SafeCloseRows(rows)
 
 	questionMap := make(map[string]*model.QuestionWithOptions)
 	questionList := []*model.QuestionWithOptions{} // ✅ Track order
@@ -227,7 +228,7 @@ func (r *QuestionRepository) GetQuestionsByTag(tagName string) ([]*model.Questio
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer utils.SafeCloseRows(rows)
 
 	questionMap := make(map[string]*model.QuestionWithOptions)
 

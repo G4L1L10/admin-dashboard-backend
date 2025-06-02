@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
+	"github.com/G4L1L10/admin-dashboard-backend/pkg/utils"
 )
 
 type QuestionTagRepository struct {
@@ -59,7 +60,7 @@ func (r *QuestionTagRepository) GetTagsByQuestionID(questionID string) ([]string
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer utils.SafeCloseRows(rows)
 
 	var tags []string
 	for rows.Next() {

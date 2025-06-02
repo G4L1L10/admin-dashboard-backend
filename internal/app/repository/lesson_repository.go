@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/model"
+	"github.com/G4L1L10/admin-dashboard-backend/pkg/utils"
 )
 
 type LessonRepository struct {
@@ -54,7 +55,7 @@ func (r *LessonRepository) GetByCourseID(courseID string) ([]*model.Lesson, erro
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer utils.SafeCloseRows(rows)
 
 	var lessons []*model.Lesson
 	for rows.Next() {
@@ -104,4 +105,3 @@ func (r *LessonRepository) Delete(id string) error {
 	_, err := r.db.Exec(query, id)
 	return err
 }
-
