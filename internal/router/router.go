@@ -1,3 +1,4 @@
+// router/router.go
 package router
 
 import (
@@ -7,12 +8,13 @@ import (
 )
 
 type Router struct {
-	CourseHandler   *handler.CourseHandler
-	LessonHandler   *handler.LessonHandler
-	QuestionHandler *handler.QuestionHandler
-	OptionHandler   *handler.OptionHandler
-	TagHandler      *handler.TagHandler
-	StatsHandler    *handler.StatsHandler
+	CourseHandler       *handler.CourseHandler
+	LessonHandler       *handler.LessonHandler
+	QuestionHandler     *handler.QuestionHandler
+	OptionHandler       *handler.OptionHandler
+	TagHandler          *handler.TagHandler
+	StatsHandler        *handler.StatsHandler
+	UserProgressHandler *handler.UserProgressHandler
 }
 
 func NewRouter(
@@ -22,14 +24,16 @@ func NewRouter(
 	optionHandler *handler.OptionHandler,
 	tagHandler *handler.TagHandler,
 	statsHandler *handler.StatsHandler,
+	userProgressHandler *handler.UserProgressHandler,
 ) *Router {
 	return &Router{
-		CourseHandler:   courseHandler,
-		LessonHandler:   lessonHandler,
-		QuestionHandler: questionHandler,
-		OptionHandler:   optionHandler,
-		TagHandler:      tagHandler,
-		StatsHandler:    statsHandler,
+		CourseHandler:       courseHandler,
+		LessonHandler:       lessonHandler,
+		QuestionHandler:     questionHandler,
+		OptionHandler:       optionHandler,
+		TagHandler:          tagHandler,
+		StatsHandler:        statsHandler,
+		UserProgressHandler: userProgressHandler,
 	}
 }
 
@@ -122,12 +126,21 @@ func (r *Router) SetupRouter() *gin.Engine {
 		// ===== Stats =====
 		api.GET("/stats", r.StatsHandler.GetStats)
 
+		// ===== User Progress =====
+		userProgress := api.Group("/progress")
+		{
+			userProgress.Use(middleware.AuthMiddleware())
+			{
+				userProgress.GET("/:user_id", r.UserProgressHandler.GetUserProgress)
+				userProgress.POST("", r.UserProgressHandler.MarkLessonCompleted)
+			}
+		}
+
 		// ===== Media Upload (Protected) =====
-		//		api.POST("/media/upload", middleware.AuthMiddleware(), handler.UploadMedia)
 		api.GET("/media/signed-url", handler.GetSignedURL)
 		api.GET("/media/upload-url", handler.GetUploadURL)
-
 	}
 
 	return router
 }
+

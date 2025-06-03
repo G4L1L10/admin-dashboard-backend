@@ -2,7 +2,7 @@ ggVGy to copy all on vim
 
 ## Create database
 
-CREATE DATABASE bandroom_cms;
+CREATE DATABASE bandroom_core;
 
 ## Create tables
 

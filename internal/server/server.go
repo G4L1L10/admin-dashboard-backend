@@ -23,7 +23,8 @@ func Start() error {
 	optionRepo := repository.NewOptionRepository(db.DB)
 	tagRepo := repository.NewTagRepository(db.DB)
 	questionTagRepo := repository.NewQuestionTagRepository(db.DB)
-	statsRepo := repository.NewStatsRepository(db.DB) // ✅ Add this
+	statsRepo := repository.NewStatsRepository(db.DB)
+	userProgressRepo := repository.NewUserProgressRepository(db.DB) // ✅ NEW
 
 	// 4. Initialize services
 	courseService := service.NewCourseService(courseRepo)
@@ -31,7 +32,8 @@ func Start() error {
 	questionService := service.NewQuestionService(questionRepo, optionRepo, tagRepo, questionTagRepo)
 	optionService := service.NewOptionService(optionRepo)
 	tagService := service.NewTagService(tagRepo)
-	statsService := service.NewStatsService(statsRepo) // ✅ Add this
+	statsService := service.NewStatsService(statsRepo)
+	userProgressService := service.NewUserProgressService(userProgressRepo) // ✅ NEW
 
 	// 5. Initialize handlers
 	courseHandler := handler.NewCourseHandler(courseService)
@@ -39,7 +41,8 @@ func Start() error {
 	questionHandler := handler.NewQuestionHandler(questionService, optionService, tagService)
 	optionHandler := handler.NewOptionHandler(optionService)
 	tagHandler := handler.NewTagHandler(tagService)
-	statsHandler := handler.NewStatsHandler(statsService) // ✅ Add this
+	statsHandler := handler.NewStatsHandler(statsService)
+	userProgressHandler := handler.NewUserProgressHandler(userProgressService) // ✅ NEW
 
 	// 6. Setup router
 	appRouter := router.NewRouter(
@@ -48,7 +51,8 @@ func Start() error {
 		questionHandler,
 		optionHandler,
 		tagHandler,
-		statsHandler, // ✅ Pass statsHandler here
+		statsHandler,
+		userProgressHandler, // ✅ NEW
 	)
 
 	server := appRouter.SetupRouter()
