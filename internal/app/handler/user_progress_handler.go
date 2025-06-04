@@ -1,4 +1,3 @@
-// internal/app/handler/user_progress_handler.go
 package handler
 
 import (
@@ -11,13 +10,18 @@ import (
 )
 
 type UserProgressHandler struct {
-	Service *service.UserProgressService
+	Service             *service.UserProgressService
+	GamificationService service.GamificationService // ✅ use interface by value
 }
 
 // ✅ Constructor
-func NewUserProgressHandler(service *service.UserProgressService) *UserProgressHandler {
+func NewUserProgressHandler(
+	progressService *service.UserProgressService,
+	gamificationService service.GamificationService,
+) *UserProgressHandler {
 	return &UserProgressHandler{
-		Service: service,
+		Service:             progressService,
+		GamificationService: gamificationService,
 	}
 }
 
@@ -47,12 +51,18 @@ func (h *UserProgressHandler) MarkLessonCompleted(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.MarkLessonCompleted(input)
-	if err != nil {
+	// Step 1: Mark the lesson as completed
+	if err := h.Service.MarkLessonCompleted(input); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark lesson as completed"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "lesson marked as completed"})
+	// Step 2: Apply gamification updates (XP, crowns, gems, streak, etc.)
+	if err := h.GamificationService.ApplyLessonCompletion(input.UserID, input.LessonID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "lesson completed but failed to apply rewards"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "lesson marked as completed with rewards"})
 }
 

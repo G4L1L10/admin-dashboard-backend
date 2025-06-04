@@ -1,8 +1,8 @@
-// router/router.go
 package router
 
 import (
 	"github.com/G4L1L10/admin-dashboard-backend/internal/app/handler"
+	"github.com/G4L1L10/admin-dashboard-backend/internal/app/service"
 	"github.com/G4L1L10/admin-dashboard-backend/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -24,7 +24,8 @@ func NewRouter(
 	optionHandler *handler.OptionHandler,
 	tagHandler *handler.TagHandler,
 	statsHandler *handler.StatsHandler,
-	userProgressHandler *handler.UserProgressHandler,
+	userProgressService *service.UserProgressService,
+	gamificationService service.GamificationService, // ✅ fix: pass by value
 ) *Router {
 	return &Router{
 		CourseHandler:       courseHandler,
@@ -33,27 +34,24 @@ func NewRouter(
 		OptionHandler:       optionHandler,
 		TagHandler:          tagHandler,
 		StatsHandler:        statsHandler,
-		UserProgressHandler: userProgressHandler,
+		UserProgressHandler: handler.NewUserProgressHandler(userProgressService, gamificationService),
 	}
 }
 
 func (r *Router) SetupRouter() *gin.Engine {
 	router := gin.New()
 
-	// Global middlewares
 	router.Use(middleware.LoggerMiddleware())
 	router.Use(middleware.RecoveryMiddleware())
 	router.Use(middleware.CORSMiddleware())
 
 	api := router.Group("/api")
 	{
-		// ===== Courses =====
 		courses := api.Group("/courses")
 		{
 			courses.GET("", r.CourseHandler.ListCourses)
 			courses.GET("/:id", r.CourseHandler.GetCourse)
 
-			// Protected mutations
 			courses.Use(middleware.AuthMiddleware())
 			{
 				courses.POST("", r.CourseHandler.CreateCourse)
@@ -62,7 +60,6 @@ func (r *Router) SetupRouter() *gin.Engine {
 			}
 		}
 
-		// ===== Lessons =====
 		lesson := api.Group("/lessons")
 		{
 			lesson.GET("/detail/:id", r.LessonHandler.GetLesson)
@@ -70,7 +67,6 @@ func (r *Router) SetupRouter() *gin.Engine {
 			lesson.GET("/by-course/:course_id", r.LessonHandler.GetLessonsByCourseID)
 			lesson.GET("/:lesson_id/questions", r.QuestionHandler.GetQuestionsByLesson)
 
-			// Protected mutations
 			lesson.Use(middleware.AuthMiddleware())
 			{
 				lesson.POST("", r.LessonHandler.CreateLesson)
@@ -79,13 +75,11 @@ func (r *Router) SetupRouter() *gin.Engine {
 			}
 		}
 
-		// ===== Questions =====
 		questions := api.Group("/questions")
 		{
 			questions.GET("/:id", r.QuestionHandler.GetQuestion)
 			questions.GET("", r.QuestionHandler.GetQuestionsByTag)
 
-			// Protected mutations
 			questions.Use(middleware.AuthMiddleware())
 			{
 				questions.POST("", r.QuestionHandler.CreateQuestion)
@@ -94,12 +88,10 @@ func (r *Router) SetupRouter() *gin.Engine {
 			}
 		}
 
-		// ===== Options =====
 		options := api.Group("/options")
 		{
 			options.GET("/:id", r.OptionHandler.GetOption)
 
-			// Protected mutations
 			options.Use(middleware.AuthMiddleware())
 			{
 				options.POST("", r.OptionHandler.CreateOption)
@@ -108,13 +100,11 @@ func (r *Router) SetupRouter() *gin.Engine {
 			}
 		}
 
-		// ===== Tags =====
 		tags := api.Group("/tags")
 		{
 			tags.GET("/:id", r.TagHandler.GetTag)
 			tags.GET("", r.TagHandler.SearchTags)
 
-			// Protected mutations
 			tags.Use(middleware.AuthMiddleware())
 			{
 				tags.POST("", r.TagHandler.CreateTag)
@@ -123,10 +113,8 @@ func (r *Router) SetupRouter() *gin.Engine {
 			}
 		}
 
-		// ===== Stats =====
 		api.GET("/stats", r.StatsHandler.GetStats)
 
-		// ===== User Progress =====
 		userProgress := api.Group("/progress")
 		{
 			userProgress.Use(middleware.AuthMiddleware())
@@ -136,7 +124,6 @@ func (r *Router) SetupRouter() *gin.Engine {
 			}
 		}
 
-		// ===== Media Upload (Protected) =====
 		api.GET("/media/signed-url", handler.GetSignedURL)
 		api.GET("/media/upload-url", handler.GetUploadURL)
 	}

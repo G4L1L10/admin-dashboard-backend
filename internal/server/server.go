@@ -24,7 +24,7 @@ func Start() error {
 	tagRepo := repository.NewTagRepository(db.DB)
 	questionTagRepo := repository.NewQuestionTagRepository(db.DB)
 	statsRepo := repository.NewStatsRepository(db.DB)
-	userProgressRepo := repository.NewUserProgressRepository(db.DB) // ✅ NEW
+	userProgressRepo := repository.NewUserProgressRepository(db.DB)
 
 	// 4. Initialize services
 	courseService := service.NewCourseService(courseRepo)
@@ -33,7 +33,8 @@ func Start() error {
 	optionService := service.NewOptionService(optionRepo)
 	tagService := service.NewTagService(tagRepo)
 	statsService := service.NewStatsService(statsRepo)
-	userProgressService := service.NewUserProgressService(userProgressRepo) // ✅ NEW
+	userProgressService := service.NewUserProgressService(userProgressRepo)
+	gamificationService := service.NewGamificationService(db.DB) // ✅ returns interface by value
 
 	// 5. Initialize handlers
 	courseHandler := handler.NewCourseHandler(courseService)
@@ -42,9 +43,8 @@ func Start() error {
 	optionHandler := handler.NewOptionHandler(optionService)
 	tagHandler := handler.NewTagHandler(tagService)
 	statsHandler := handler.NewStatsHandler(statsService)
-	userProgressHandler := handler.NewUserProgressHandler(userProgressService) // ✅ NEW
 
-	// 6. Setup router
+	// ✅ Create the router
 	appRouter := router.NewRouter(
 		courseHandler,
 		lessonHandler,
@@ -52,12 +52,13 @@ func Start() error {
 		optionHandler,
 		tagHandler,
 		statsHandler,
-		userProgressHandler, // ✅ NEW
+		userProgressService,
+		gamificationService, // ✅ pass interface, not pointer
 	)
 
 	server := appRouter.SetupRouter()
 
-	// 7. Start server
+	// 6. Start server
 	port := config.AppConfig.ServerPort
 	if port == "" {
 		port = "8080"
@@ -65,3 +66,4 @@ func Start() error {
 
 	return server.Run(":" + port)
 }
+
