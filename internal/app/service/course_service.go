@@ -28,6 +28,11 @@ func (s *CourseService) ListCourses() ([]*model.Course, error) {
 	return s.courseRepo.ListCourses()
 }
 
+// ✅ NEW: READ - Courses for a user (based on progress or lesson ownership)
+func (s *CourseService) GetCoursesByUserID(userID string) ([]*model.Course, error) {
+	return s.courseRepo.GetByUserID(userID)
+}
+
 // UPDATE
 func (s *CourseService) UpdateCourse(course *model.Course) error {
 	return s.courseRepo.Update(course)

@@ -25,7 +25,7 @@ func NewRouter(
 	tagHandler *handler.TagHandler,
 	statsHandler *handler.StatsHandler,
 	userProgressService *service.UserProgressService,
-	gamificationService service.GamificationService, // ✅ fix: pass by value
+	gamificationService service.GamificationService,
 ) *Router {
 	return &Router{
 		CourseHandler:       courseHandler,
@@ -51,6 +51,7 @@ func (r *Router) SetupRouter() *gin.Engine {
 		{
 			courses.GET("", r.CourseHandler.ListCourses)
 			courses.GET("/:id", r.CourseHandler.GetCourse)
+			courses.GET("/by-user/:user_id", r.CourseHandler.GetCoursesByUserID)
 
 			courses.Use(middleware.AuthMiddleware())
 			{

@@ -57,6 +57,32 @@ func (r *CourseRepository) ListCourses() ([]*model.Course, error) {
 	return courses, nil
 }
 
+// ✅ NEW: READ - List Courses by User ID
+func (r *CourseRepository) GetByUserID(userID string) ([]*model.Course, error) {
+	query := `SELECT id, title, description, created_at, updated_at FROM courses WHERE id IN (
+		SELECT DISTINCT course_id FROM lessons WHERE id IN (
+			SELECT DISTINCT lesson_id FROM user_progress WHERE user_id = $1
+		)
+	)`
+	rows, err := r.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer utils.SafeCloseRows(rows)
+
+	var courses []*model.Course
+	for rows.Next() {
+		var course model.Course
+		err := rows.Scan(&course.ID, &course.Title, &course.Description, &course.CreatedAt, &course.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		courses = append(courses, &course)
+	}
+
+	return courses, nil
+}
+
 // UPDATE
 func (r *CourseRepository) Update(course *model.Course) error {
 	query := `UPDATE courses SET title = $1, description = $2, updated_at = NOW() WHERE id = $3`
@@ -70,3 +96,4 @@ func (r *CourseRepository) Delete(id string) error {
 	_, err := r.db.Exec(query, id)
 	return err
 }
+

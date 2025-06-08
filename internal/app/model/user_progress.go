@@ -20,3 +20,11 @@ type UserProgress struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
+// ✅ This is the struct your iOS app expects
+type UserProgressSummary struct {
+	XP     int `json:"xp"`
+	Streak int `json:"streak"`
+	Hearts int `json:"hearts"`
+	Crowns int `json:"crowns"`
+}
+

@@ -1,4 +1,3 @@
-// internal/app/service/user_progress_service.go
 package service
 
 import (
@@ -18,9 +17,15 @@ func NewUserProgressService(repo repository.UserProgressRepository) *UserProgres
 	}
 }
 
-// ✅ Get all progress for a user
-func (s *UserProgressService) GetUserProgress(userID uuid.UUID) ([]model.UserProgress, error) {
-	return s.Repository.GetProgressByUser(userID)
+// ✅ Replace slice with a summary object
+func (s *UserProgressService) GetUserProgress(userID uuid.UUID) (*model.UserProgressSummary, error) {
+	// TEMP: hardcoded dummy data
+	return &model.UserProgressSummary{
+		XP:     150,
+		Streak: 5,
+		Hearts: 3,
+		Crowns: 2,
+	}, nil
 }
 
 // ✅ Mark lesson completed

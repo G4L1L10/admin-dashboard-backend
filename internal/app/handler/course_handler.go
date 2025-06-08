@@ -46,11 +46,24 @@ func (h *CourseHandler) GetCourse(c *gin.Context) {
 	c.JSON(http.StatusOK, course)
 }
 
-// GET /api/courses  ✅ NEW
+// GET /api/courses
 func (h *CourseHandler) ListCourses(c *gin.Context) {
 	courses, err := h.courseService.ListCourses()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch courses", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, courses)
+}
+
+// GET /api/courses/by-user/:user_id
+func (h *CourseHandler) GetCoursesByUserID(c *gin.Context) {
+	userID := c.Param("user_id")
+
+	courses, err := h.courseService.GetCoursesByUserID(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to fetch courses for user", err.Error()))
 		return
 	}
 
@@ -87,3 +100,4 @@ func (h *CourseHandler) DeleteCourse(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Course deleted successfully"})
 }
+
